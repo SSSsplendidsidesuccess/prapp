@@ -1,2 +1,13 @@
+# Frontend (Node.js)
 node_modules
 package-lock.json
+
+# Backend (Python)
+__pycache__/
+*.pyc
+.env
+venv/
+.venv/
+
+# System
+.DS_Store
