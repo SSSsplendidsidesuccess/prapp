@@ -72,7 +72,7 @@ Prapp/
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Mixai-ux/prapp.git
+git clone https://github.com/SSSsplendidsidesuccess/prapp.git
 cd prapp
 ```
 
@@ -269,7 +269,7 @@ Proprietary - Maven AI PM Bootcamp Capstone Project
 
 ## 🔗 Links
 
-- **GitHub Repository**: https://github.com/Mixai-ux/prapp
+- **GitHub Repository**: https://github.com/SSSsplendidsidesuccess/prapp
 - **Railway**: https://railway.app
 - **Vercel**: https://vercel.com
 - **MongoDB Atlas**: https://cloud.mongodb.com
