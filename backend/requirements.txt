@@ -11,6 +11,7 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
 
 # Configuration
+pydantic-core==2.23.3
 pydantic==2.9.0
 pydantic-settings==2.5.2
 python-dotenv==1.0.1
