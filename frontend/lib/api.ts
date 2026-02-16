@@ -1,6 +1,9 @@
+// Smart API URL configuration that works for both production and local development
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
-  : 'http://localhost:8000/api/v1';
+  : process.env.NODE_ENV === 'production'
+    ? 'https://prapp-backend-docker.onrender.com/api/v1'
+    : 'http://localhost:8000/api/v1';
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
