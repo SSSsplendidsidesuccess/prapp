@@ -23,6 +23,8 @@ class UserInDB(BaseModel):
     activation_state: str = Field(default="new", description="User activation state: new or activated")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_active_at: datetime = Field(default_factory=datetime.utcnow)
+    reset_token: Optional[str] = Field(default=None, description="Password reset token")
+    reset_token_expires_at: Optional[datetime] = Field(default=None, description="Reset token expiration time")
     
     class Config:
         json_schema_extra = {
@@ -116,5 +118,57 @@ class AccountDeletion(BaseModel):
         json_schema_extra = {
             "example": {
                 "password": "mypassword123"
+            }
+        }
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot password request."""
+    email: EmailStr = Field(..., description="Email address to send reset link")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com"
+            }
+        }
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Schema for forgot password response."""
+    message: str
+    reset_link: str = Field(..., description="Password reset link (for testing without email service)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "message": "Password reset link generated",
+                "reset_link": "https://prapp-frontend.vercel.app/reset-password?token=abc123..."
+            }
+        }
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for reset password request."""
+    token: str = Field(..., description="Password reset token from email link")
+    new_password: str = Field(..., min_length=8, description="New password (min 8 characters)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "token": "abc123def456...",
+                "new_password": "newSecurePassword123"
+            }
+        }
+
+
+class ResetPasswordResponse(BaseModel):
+    """Schema for reset password response."""
+    message: str
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "message": "Password successfully reset"
             }
         }
