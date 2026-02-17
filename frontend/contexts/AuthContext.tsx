@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+// API base URL - uses environment variable or defaults to production
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://prapp-backend-docker.onrender.com';
+
 interface User {
   id: string;
   email: string;
@@ -40,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserData = async (authToken: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -68,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/signup', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (token) {
         // Call logout endpoint
-        await fetch('http://localhost:8000/api/v1/auth/logout', {
+        await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
