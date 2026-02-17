@@ -3,7 +3,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // API base URL - uses environment variable or defaults to production
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://prapp-backend-docker.onrender.com';
+// Note: Does NOT include /api/v1 suffix (added in each request)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
+  ? process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/v1$/, '') // Remove /api/v1 if present
+  : 'https://prapp-backend-docker.onrender.com';
 
 interface User {
   id: string;
