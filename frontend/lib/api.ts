@@ -1,10 +1,7 @@
-// Smart API URL configuration that works for both production and local development
-// Uses runtime hostname detection to determine if we're in production
+// Production-first API URL configuration
+// Uses production URL by default, can be overridden with NEXT_PUBLIC_API_URL env var for local dev
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
-  ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
-  : typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? 'https://prapp-backend-docker.onrender.com/api/v1'
-    : 'http://localhost:8000/api/v1';
+  || 'https://prapp-backend-docker.onrender.com/api/v1';
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
