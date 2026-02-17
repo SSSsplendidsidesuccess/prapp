@@ -105,6 +105,18 @@ export const authApi = {
     apiRequest('/auth/me', {
       requiresAuth: true,
     }),
+
+  forgotPassword: (email: string): Promise<{ message: string; reset_link: string }> =>
+    apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (token: string, new_password: string): Promise<{ message: string }> =>
+    apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password }),
+    }),
 };
 
 /**
