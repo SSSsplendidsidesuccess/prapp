@@ -34,25 +34,33 @@ import { sessionApi, SessionCreate, PreparationType } from '@/lib/api';
 
 // --- Components ---
 
-const TopBar = ({ 
-  showDevToggle, 
-  activationState, 
-  onToggleState 
-}: { 
+const TopBar = ({
+  showDevToggle,
+  activationState,
+  onToggleState,
+  onNavigateToDashboard
+}: {
   showDevToggle: boolean;
   activationState: string;
   onToggleState: () => void;
+  onNavigateToDashboard: () => void;
 }) => (
   <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between">
     <div className="flex items-center gap-2">
-      <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center">
-        <div className="w-4 h-4 bg-slate-950 rounded-sm" />
-      </div>
-      <span className="font-bold text-white text-lg tracking-tight">prapp</span>
+      <button
+        onClick={onNavigateToDashboard}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        title="Go to Dashboard"
+      >
+        <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center">
+          <div className="w-4 h-4 bg-slate-950 rounded-sm" />
+        </div>
+        <span className="font-bold text-white text-lg tracking-tight">prapp</span>
+      </button>
     </div>
     <div className="flex items-center gap-3">
       {showDevToggle && (
-        <button 
+        <button
           onClick={onToggleState}
           className="hidden md:block text-[10px] text-slate-600 hover:text-amber-400 font-mono border border-slate-800 px-2 py-1 rounded bg-slate-900/50 mr-2 transition-colors"
           title="Designer Preview: Toggle User State"
@@ -722,10 +730,11 @@ function ProfilePageContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 pb-32">
-      <TopBar 
+      <TopBar
         showDevToggle={isDev}
         activationState={profile.activationState}
         onToggleState={toggleActivationState}
+        onNavigateToDashboard={() => router.push('/dashboard')}
       />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
