@@ -46,16 +46,24 @@ const TopBar = ({
   onNavigateToDashboard: () => void;
 }) => (
   <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between">
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-4">
       <button
         onClick={onNavigateToDashboard}
-        className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
         title="Go to Dashboard"
       >
-        <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center">
+        <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center cursor-pointer">
           <div className="w-4 h-4 bg-slate-950 rounded-sm" />
         </div>
         <span className="font-bold text-white text-lg tracking-tight">prapp</span>
+      </button>
+      <button
+        onClick={onNavigateToDashboard}
+        className="flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+        title="Back to Home"
+      >
+        <ChevronRight size={16} className="rotate-180" />
+        <span>Back to Home</span>
       </button>
     </div>
     <div className="flex items-center gap-3">
