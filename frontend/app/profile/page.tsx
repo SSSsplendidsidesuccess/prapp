@@ -734,7 +734,7 @@ function ProfilePageContent() {
         showDevToggle={isDev}
         activationState={profile.activationState}
         onToggleState={toggleActivationState}
-        onNavigateToDashboard={() => router.push('/dashboard')}
+        onNavigateToDashboard={() => router.push('/')}
       />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
