@@ -10,8 +10,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Password hashing context using Argon2
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# Password hashing context supporting both bcrypt (new) and argon2 (legacy)
+# This allows old passwords hashed with argon2 to still work while new passwords use bcrypt
+pwd_context = CryptContext(schemes=["bcrypt", "argon2"], deprecated="auto")
 
 # JWT settings
 ALGORITHM = "HS256"
