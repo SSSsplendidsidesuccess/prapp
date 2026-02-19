@@ -3,6 +3,23 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
   || 'https://prapp-backend-docker.onrender.com/api/v1';
 
+// Import types
+import type {
+  Document,
+  DocumentListResponse,
+  DocumentUploadResponse
+} from '@/types/documents';
+import type {
+  TalkPoint,
+  TalkPointListResponse,
+  TalkPointGenerateRequest,
+  TalkPointGenerateResponse
+} from '@/types/talkPoints';
+import type {
+  CompanyProfile,
+  DealStage
+} from '@/types/sales';
+
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
 }
@@ -134,6 +151,19 @@ export const userApi = {
       requiresAuth: true,
       body: JSON.stringify(data),
     }),
+
+  /**
+   * Update user profile with company profile
+   */
+  updateProfileWithCompany: (data: {
+    full_name?: string;
+    company_profile?: CompanyProfile;
+  }) =>
+    apiRequest('/users/profile', {
+      method: 'PATCH',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
 };
 
 /**
@@ -182,6 +212,7 @@ export interface ChatMessage {
   role: 'ai' | 'user';
   message: string;
   timestamp: string;
+  retrieved_context_ids?: string[];
 }
 
 export interface SessionCreate {
@@ -419,6 +450,133 @@ export const analyticsApi = {
    */
   getImprovements: (): Promise<ImprovementRecommendations> =>
     apiRequest('/analytics/improvements', {
+      requiresAuth: true,
+    }),
+};
+
+// ============================================================================
+// DOCUMENTS API (Knowledge Base)
+// ============================================================================
+
+/**
+ * Documents API calls for Knowledge Base management
+ */
+export const documentsApi = {
+  /**
+   * Upload a document to the knowledge base
+   */
+  upload: async (file: File): Promise<DocumentUploadResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/documents/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        response.status,
+        errorData.detail || `Upload failed with status ${response.status}`
+      );
+    }
+
+    return response.json();
+  },
+
+  /**
+   * List all documents for the current user
+   */
+  list: (params?: {
+    limit?: number;
+    skip?: number;
+  }): Promise<DocumentListResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.skip) queryParams.append('skip', params.skip.toString());
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/documents?${queryString}` : '/documents';
+    
+    return apiRequest(endpoint, {
+      requiresAuth: true,
+    });
+  },
+
+  /**
+   * Get a specific document by ID
+   */
+  get: (documentId: string): Promise<Document> =>
+    apiRequest(`/documents/${documentId}`, {
+      requiresAuth: true,
+    }),
+
+  /**
+   * Delete a document
+   */
+  delete: (documentId: string): Promise<{ message: string; document_id: string }> =>
+    apiRequest(`/documents/${documentId}`, {
+      method: 'DELETE',
+      requiresAuth: true,
+    }),
+};
+
+// ============================================================================
+// TALK POINTS API
+// ============================================================================
+
+/**
+ * Talk Points API calls for sales preparation
+ */
+export const talkPointsApi = {
+  /**
+   * Generate talk points using RAG
+   */
+  generate: (data: TalkPointGenerateRequest): Promise<TalkPointGenerateResponse> =>
+    apiRequest('/talk-points/generate', {
+      method: 'POST',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * List all talk points for the current user
+   */
+  list: (params?: {
+    limit?: number;
+    skip?: number;
+  }): Promise<TalkPointListResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.skip) queryParams.append('skip', params.skip.toString());
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/talk-points?${queryString}` : '/talk-points';
+    
+    return apiRequest(endpoint, {
+      requiresAuth: true,
+    });
+  },
+
+  /**
+   * Get a specific talk point by ID
+   */
+  get: (talkPointId: string): Promise<TalkPoint> =>
+    apiRequest(`/talk-points/${talkPointId}`, {
+      requiresAuth: true,
+    }),
+
+  /**
+   * Delete a talk point
+   */
+  delete: (talkPointId: string): Promise<{ message: string; talk_point_id: string }> =>
+    apiRequest(`/talk-points/${talkPointId}`, {
+      method: 'DELETE',
       requiresAuth: true,
     }),
 };

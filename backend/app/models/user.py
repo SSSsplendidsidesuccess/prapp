@@ -2,9 +2,27 @@
 User models for authentication and user management.
 """
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, Dict, Any
 from datetime import datetime
 from uuid import uuid4
+
+
+class CompanyProfile(BaseModel):
+    """Schema for company/product profile."""
+    name: Optional[str] = Field(None, description="Company or product name")
+    description: Optional[str] = Field(None, description="Company background or product description")
+    value_proposition: Optional[str] = Field(None, description="Key value proposition or unique selling points")
+    industry: Optional[str] = Field(None, description="Industry or market segment")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Acme SaaS Platform",
+                "description": "Enterprise project management software",
+                "value_proposition": "Reduce project delivery time by 40% with AI-powered insights",
+                "industry": "Software/SaaS"
+            }
+        }
 
 
 class UserCreate(BaseModel):
@@ -21,6 +39,7 @@ class UserInDB(BaseModel):
     password_hash: str
     name: Optional[str] = None
     activation_state: str = Field(default="new", description="User activation state: new or activated")
+    company_profile: Optional[Dict[str, Any]] = Field(default=None, description="Company/product profile information")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_active_at: datetime = Field(default_factory=datetime.utcnow)
     reset_token: Optional[str] = Field(default=None, description="Password reset token")
@@ -34,6 +53,11 @@ class UserInDB(BaseModel):
                 "password_hash": "$argon2id$...",
                 "name": "John Doe",
                 "activation_state": "new",
+                "company_profile": {
+                    "name": "Acme SaaS",
+                    "description": "Enterprise software",
+                    "value_proposition": "Reduce costs by 40%"
+                },
                 "created_at": "2026-02-11T20:00:00Z",
                 "last_active_at": "2026-02-11T20:30:00Z"
             }
@@ -46,6 +70,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     name: Optional[str] = None
     activation_state: str
+    company_profile: Optional[Dict[str, Any]] = None
     
     class Config:
         json_schema_extra = {
@@ -53,7 +78,11 @@ class UserResponse(BaseModel):
                 "user_id": "550e8400-e29b-41d4-a716-446655440000",
                 "email": "user@example.com",
                 "name": "John Doe",
-                "activation_state": "new"
+                "activation_state": "new",
+                "company_profile": {
+                    "name": "Acme SaaS",
+                    "description": "Enterprise software"
+                }
             }
         }
 
@@ -86,12 +115,18 @@ class UserProfileUpdate(BaseModel):
     """Schema for updating user profile."""
     name: Optional[str] = Field(None, description="User's display name")
     email: Optional[EmailStr] = Field(None, description="User's email address")
+    company_profile: Optional[CompanyProfile] = Field(None, description="Company/product profile")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "name": "Jane Doe",
-                "email": "jane.doe@example.com"
+                "email": "jane.doe@example.com",
+                "company_profile": {
+                    "name": "Acme SaaS",
+                    "description": "Enterprise project management",
+                    "value_proposition": "Reduce delivery time by 40%"
+                }
             }
         }
 

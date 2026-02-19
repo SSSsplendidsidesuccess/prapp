@@ -1,5 +1,5 @@
 """
-Session models for Interview OS preparation sessions.
+Session models for Sales Call Prep preparation sessions.
 Handles session setup, chat messages, and session state management.
 """
 from pydantic import BaseModel, Field
@@ -19,6 +19,17 @@ class PreparationType(str, Enum):
     OTHER = "Other"
 
 
+class DealStage(str, Enum):
+    """Enum for B2B sales lifecycle stages."""
+    PROSPECTING = "Prospecting"
+    DISCOVERY = "Discovery"
+    QUALIFICATION = "Qualification"
+    PROPOSAL = "Proposal"
+    NEGOTIATION = "Negotiation"
+    CLOSING = "Closing"
+    FOLLOW_UP = "Follow-up"
+
+
 class SessionStatus(str, Enum):
     """Enum for session status values."""
     SETUP = "setup"
@@ -32,13 +43,15 @@ class ChatMessage(BaseModel):
     role: str = Field(..., description="Message role: 'ai' or 'user'")
     message: str = Field(..., description="Message content")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    retrieved_context_ids: Optional[List[str]] = Field(default=None, description="Document IDs used for RAG context")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "role": "ai",
                 "message": "Tell me about a time you led a project...",
-                "timestamp": "2026-02-13T03:00:00Z"
+                "timestamp": "2026-02-13T03:00:00Z",
+                "retrieved_context_ids": []
             }
         }
 
@@ -50,15 +63,22 @@ class SessionSetup(BaseModel):
     agenda: Optional[str] = Field(None, description="Session agenda or focus")
     tone: str = Field(default="Professional & Confident", description="Desired conversation tone")
     role_context: Optional[str] = Field(None, description="User's background/role context")
+    # Sales-specific fields
+    customer_name: Optional[str] = Field(None, description="Customer/prospect name for sales sessions")
+    customer_persona: Optional[str] = Field(None, description="Customer persona (e.g., 'Skeptical CFO', 'Technical CTO')")
+    deal_stage: Optional[DealStage] = Field(None, description="Current stage in sales lifecycle")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "preparation_type": "Interview",
-                "meeting_subtype": "Behavioral",
-                "agenda": "Practice STAR method responses",
+                "preparation_type": "Sales",
+                "meeting_subtype": "Discovery Call",
+                "agenda": "Understand customer pain points and budget",
                 "tone": "Professional & Confident",
-                "role_context": "Senior Product Manager with 5 years experience"
+                "role_context": "Enterprise Sales Rep with 3 years experience",
+                "customer_name": "Acme Corp",
+                "customer_persona": "Skeptical CFO",
+                "deal_stage": "Discovery"
             }
         }
 
@@ -70,15 +90,22 @@ class SessionCreate(BaseModel):
     agenda: Optional[str] = None
     tone: str = "Professional & Confident"
     role_context: Optional[str] = None
+    # Sales-specific fields
+    customer_name: Optional[str] = None
+    customer_persona: Optional[str] = None
+    deal_stage: Optional[DealStage] = None
     
     class Config:
         json_schema_extra = {
             "example": {
-                "preparation_type": "Interview",
-                "meeting_subtype": "Behavioral",
-                "agenda": "Practice STAR method responses",
+                "preparation_type": "Sales",
+                "meeting_subtype": "Discovery Call",
+                "agenda": "Understand customer pain points",
                 "tone": "Professional & Confident",
-                "role_context": "Senior Product Manager"
+                "role_context": "Enterprise Sales Rep",
+                "customer_name": "Acme Corp",
+                "customer_persona": "Skeptical CFO",
+                "deal_stage": "Discovery"
             }
         }
 

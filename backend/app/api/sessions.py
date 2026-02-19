@@ -1,6 +1,6 @@
 """
-Session management API endpoints for Interview OS.
-Handles session creation, chat messages, evaluation, and history.
+Session management API endpoints for Sales Call Prep.
+Handles session creation, chat messages, evaluation, and history with RAG integration.
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional, List
@@ -23,6 +23,8 @@ from app.models.session_evaluation import (
 from app.core.dependencies import get_current_user
 from app.db.mongodb import get_database
 from app.services.openai_service import openai_service
+from app.services.rag_service import get_rag_service
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -83,11 +85,14 @@ async def create_session(
         Created session object
     """
     try:
-        # Build context payload
+        # Build context payload with sales-specific fields
         context_payload = {
             "agenda": session_data.agenda,
             "tone": session_data.tone,
-            "role_context": session_data.role_context
+            "role_context": session_data.role_context,
+            "customer_name": session_data.customer_name,
+            "customer_persona": session_data.customer_persona,
+            "deal_stage": session_data.deal_stage.value if session_data.deal_stage else None
         }
         
         # Create session document
@@ -347,19 +352,44 @@ async def send_message(
         transcript = session.get("transcript", [])
         transcript.append(user_message.model_dump())
         
-        # Generate AI response using OpenAI service
+        # Query RAG service for relevant context (for Sales sessions)
+        retrieved_context = None
+        retrieved_doc_ids = []
+        
+        if session["preparation_type"] == "Sales":
+            try:
+                rag_service = get_rag_service(settings.OPENAI_API_KEY)
+                
+                # Query with user's message to get relevant context
+                rag_results = await rag_service.query(
+                    user_id=current_user["user_id"],
+                    query_text=request.message,
+                    top_k=5
+                )
+                
+                if rag_results:
+                    retrieved_context = rag_results
+                    retrieved_doc_ids = [r.get("document_id") for r in rag_results if r.get("document_id")]
+                    logger.info(f"Retrieved {len(rag_results)} context chunks from RAG for session {session_id}")
+                
+            except Exception as e:
+                logger.warning(f"RAG query failed for session {session_id}: {e}. Continuing without context.")
+        
+        # Generate AI response using OpenAI service with RAG context
         ai_response_text = await openai_service.generate_session_response(
             preparation_type=session["preparation_type"],
             meeting_subtype=session.get("meeting_subtype"),
             context_payload=session.get("context_payload", {}),
-            transcript=transcript
+            transcript=transcript,
+            retrieved_context=retrieved_context
         )
         
-        # Create AI message
+        # Create AI message with retrieved context IDs
         ai_message = ChatMessage(
             role="ai",
             message=ai_response_text,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
+            retrieved_context_ids=retrieved_doc_ids if retrieved_doc_ids else None
         )
         
         # Add AI message to transcript

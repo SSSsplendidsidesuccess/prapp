@@ -524,16 +524,18 @@ Return your response as a valid JSON object with the specified fields."""
         preparation_type: str,
         meeting_subtype: Optional[str],
         context_payload: dict,
-        transcript: List[dict]
+        transcript: List[dict],
+        retrieved_context: Optional[List[Dict[str, any]]] = None
     ) -> str:
         """
-        Generate AI response for interview preparation session.
+        Generate AI response for preparation session with optional RAG context.
         
         Args:
             preparation_type: Type of preparation (Interview, Sales, etc.)
             meeting_subtype: Specific subtype (e.g., Behavioral, Technical)
             context_payload: Session context (agenda, tone, role_context)
             transcript: Conversation history
+            retrieved_context: Optional list of retrieved document chunks from RAG
             
         Returns:
             AI response message
@@ -541,7 +543,7 @@ Return your response as a valid JSON object with the specified fields."""
         Raises:
             Exception: If OpenAI API call fails
         """
-        logger.info(f"Generating session response for {preparation_type} session")
+        logger.info(f"Generating session response for {preparation_type} session (RAG: {bool(retrieved_context)})")
         
         try:
             # Construct conversation prompt
@@ -549,7 +551,8 @@ Return your response as a valid JSON object with the specified fields."""
                 preparation_type,
                 meeting_subtype,
                 context_payload,
-                transcript
+                transcript,
+                retrieved_context
             )
             
             # Call OpenAI API
@@ -582,16 +585,18 @@ Return your response as a valid JSON object with the specified fields."""
         preparation_type: str,
         meeting_subtype: Optional[str],
         context_payload: dict,
-        transcript: List[dict]
+        transcript: List[dict],
+        retrieved_context: Optional[List[Dict[str, any]]] = None
     ) -> List[Dict[str, str]]:
         """
-        Construct prompt for interview preparation session.
+        Construct prompt for preparation session with optional RAG context.
         
         Args:
             preparation_type: Type of preparation
             meeting_subtype: Specific subtype
             context_payload: Session context
             transcript: Conversation history
+            retrieved_context: Optional retrieved document chunks
             
         Returns:
             List of message dictionaries for OpenAI API
@@ -618,11 +623,20 @@ Return your response as a valid JSON object with the specified fields."""
 - Focus on storytelling and persuasion
 - Provide feedback on clarity and impact""",
             
-            "Sales": """You are an expert sales coach. Your role is to:
-- Help practice sales conversations
-- Focus on discovery questions and objection handling
-- Provide feedback on persuasion techniques
-- Help build confidence in sales scenarios""",
+            "Sales": """You are a prospective customer in a sales call simulation. Your role is to:
+- Act as the customer persona specified in the context
+- Ask realistic questions about the product/service based on your needs and concerns
+- Challenge the salesperson with objections appropriate to your deal stage
+- Show skepticism when appropriate, but be open to good answers
+- Ask follow-up questions to dig deeper into areas of interest or concern
+- Reference information from your company background when relevant
+- Behave realistically based on the deal stage (e.g., more exploratory in Discovery, more detail-focused in Proposal)
+
+IMPORTANT: You have access to background information about the product/service being sold. Use this information to:
+- Ask informed questions that a real customer would ask
+- Challenge claims with specific concerns
+- Reference features or capabilities mentioned in the documentation
+- Only use information that would be realistic for a customer to know or ask about""",
             
             "Presentation": """You are an expert presentation coach. Your role is to:
 - Help prepare for presentations
@@ -643,13 +657,40 @@ Return your response as a valid JSON object with the specified fields."""
         agenda = context_payload.get("agenda", "")
         tone = context_payload.get("tone", "Professional & Confident")
         role_context = context_payload.get("role_context", "")
+        customer_name = context_payload.get("customer_name", "")
+        customer_persona = context_payload.get("customer_persona", "")
+        deal_stage = context_payload.get("deal_stage", "")
+        
+        # Add sales-specific context
+        if preparation_type == "Sales":
+            if customer_name:
+                system_prompt += f"\n\nYou are representing: {customer_name}"
+            if customer_persona:
+                system_prompt += f"\n\nYour persona: {customer_persona}"
+            if deal_stage:
+                system_prompt += f"\n\nCurrent deal stage: {deal_stage}"
+                system_prompt += f"\n\nAdjust your questions and concerns to be appropriate for the {deal_stage} stage."
         
         if agenda:
             system_prompt += f"\n\nSession agenda: {agenda}"
         if role_context:
-            system_prompt += f"\n\nUser background: {role_context}"
+            system_prompt += f"\n\nSalesperson background: {role_context}"
         if meeting_subtype:
             system_prompt += f"\n\nFocus area: {meeting_subtype}"
+        
+        # Add RAG context if available
+        if retrieved_context and len(retrieved_context) > 0:
+            context_text = "\n\n=== BACKGROUND INFORMATION ===\n"
+            context_text += "The following information is available about the product/service being discussed:\n\n"
+            
+            for i, chunk in enumerate(retrieved_context[:5], 1):  # Limit to top 5 chunks
+                context_text += f"[Source {i}]\n{chunk['text']}\n\n"
+            
+            context_text += "=== END BACKGROUND INFORMATION ===\n"
+            context_text += "\nUse this information naturally in your questions and responses. "
+            context_text += "Ask questions that show you've done research or have specific concerns based on this information."
+            
+            system_prompt += context_text
         
         system_prompt += f"\n\nMaintain a {tone} tone throughout the conversation."
         
@@ -753,7 +794,63 @@ Return your response as a valid JSON object with the specified fields."""
         Returns:
             List of message dictionaries for OpenAI API
         """
-        system_prompt = """You are an expert performance evaluator for interview and communication preparation. Evaluate the user's performance across multiple dimensions and provide constructive feedback.
+        # Determine if this is a sales session
+        is_sales = preparation_type == "Sales"
+        
+        if is_sales:
+            system_prompt = """You are an expert sales performance evaluator. Evaluate the salesperson's performance in this practice session across multiple dimensions and provide constructive feedback.
+
+Evaluate these dimensions (score 0-100 for each):
+1. **Product Knowledge**: How well did they demonstrate understanding of their product/service?
+2. **Customer Understanding**: How well did they understand and address customer needs?
+3. **Objection Handling**: How effectively did they handle objections and concerns?
+4. **Value Communication**: How clearly did they articulate value propositions?
+5. **Question Quality**: How effective were their discovery questions?
+6. **Confidence & Delivery**: How confident and professional was their delivery?
+
+For Sales sessions, also assess:
+- **Knowledge Base Usage**: Did they reference specific features/capabilities from documentation?
+- **Stage Appropriateness**: Were their responses appropriate for the deal stage?
+- **Personalization**: Did they tailor responses to the customer persona?
+
+Your evaluation should be:
+- Constructive and encouraging
+- Specific with actionable feedback
+- Balanced (acknowledge strengths and areas for improvement)
+- Professional and supportive
+- Sales-focused with practical recommendations
+
+Output your response as a JSON object with these exact fields:
+{
+  "universal_scores": {
+    "product_knowledge": 0-100,
+    "customer_understanding": 0-100,
+    "objection_handling": 0-100,
+    "value_communication": 0-100,
+    "question_quality": 0-100,
+    "confidence_delivery": 0-100
+  },
+  "sales_specific": {
+    "knowledge_base_usage": "excellent|good|fair|poor",
+    "stage_appropriateness": "excellent|good|fair|poor",
+    "personalization": "excellent|good|fair|poor",
+    "notes": "Brief notes on sales-specific performance"
+  },
+  "overall_score": 0-100 (weighted average),
+  "strengths": ["strength 1", "strength 2", "strength 3"] (2-3 key strengths),
+  "improvement_areas": [
+    {
+      "dimension": "dimension name",
+      "current_level": "weak|solid|strong",
+      "suggestion": "specific actionable suggestion",
+      "priority": "high|medium|low"
+    }
+  ] (2-3 improvement areas),
+  "practice_suggestions": ["suggestion 1", "suggestion 2"] (2-3 specific practice suggestions),
+  "summary": "2-3 sentence overall evaluation summary"
+}"""
+        else:
+            system_prompt = """You are an expert performance evaluator for interview and communication preparation. Evaluate the user's performance across multiple dimensions and provide constructive feedback.
 
 Evaluate these universal dimensions (score 0-100 for each):
 1. **Clarity & Structure**: How clear and well-organized were the responses?
@@ -807,6 +904,16 @@ Output your response as a JSON object with these exact fields:
             context_text += f"\nAgenda: {context_payload['agenda']}"
         if context_payload.get("tone"):
             context_text += f"\nDesired Tone: {context_payload['tone']}"
+        
+        # Add sales-specific context
+        if preparation_type == "Sales":
+            if context_payload.get("customer_name"):
+                context_text += f"\nCustomer: {context_payload['customer_name']}"
+            if context_payload.get("customer_persona"):
+                context_text += f"\nCustomer Persona: {context_payload['customer_persona']}"
+            if context_payload.get("deal_stage"):
+                context_text += f"\nDeal Stage: {context_payload['deal_stage']}"
+                context_text += f"\n\nNote: Evaluate if the salesperson's approach was appropriate for the {context_payload['deal_stage']} stage."
         
         user_prompt = f"""{context_text}
 

@@ -27,8 +27,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Interview OS API",
-    description="Backend API for Interview OS preparation platform",
+    title="Sales Call Prep API",
+    description="Backend API for Sales Call Preparation platform with AI-powered features",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -64,9 +64,17 @@ api_v1_router.include_router(users_router)
 # from app.api.prds import router as prds_router
 # api_v1_router.include_router(prds_router)
 
-# Include sessions router (Interview OS - Session Management)
+# Include sessions router (Sales Call Prep - Session Management)
 from app.api.sessions import router as sessions_router
 api_v1_router.include_router(sessions_router)
+
+# Include documents router (Knowledge Base Management)
+from app.api.documents import router as documents_router
+api_v1_router.include_router(documents_router)
+
+# Include talk points router (Sales Preparation)
+from app.api.talk_points import router as talk_points_router
+api_v1_router.include_router(talk_points_router)
 
 # Include analytics router
 from app.api.analytics import router as analytics_router
