@@ -120,11 +120,11 @@ const Chip = ({
 );
 
 const PREP_TYPES = [
-  { id: 'Interview', label: 'Interview', icon: Briefcase },
-  { id: 'Corporate', label: 'Corporate', icon: Users },
-  { id: 'Pitch', label: 'Pitch', icon: Mic },
   { id: 'Sales', label: 'Sales', icon: TrendingUp },
+  { id: 'Pitch', label: 'Pitch', icon: Mic },
+  { id: 'Corporate', label: 'Corporate', icon: Users },
   { id: 'Presentation', label: 'Presentation', icon: Presentation },
+  { id: 'Interview', label: 'Interview', icon: Briefcase },
   { id: 'Other', label: 'Other', icon: AlertCircle },
 ];
 

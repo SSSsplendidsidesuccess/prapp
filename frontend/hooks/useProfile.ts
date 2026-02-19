@@ -35,7 +35,7 @@ export interface UserProfile {
 
 const DEFAULT_PROFILE: UserProfile = {
   activationState: 'new',
-  preparationType: 'Interview',
+  preparationType: 'Sales',
   meetingSubtype: '',
   agenda: '',
   tone: 'Professional & Confident',
