@@ -1,13 +1,12 @@
 """
 Document processing service for extracting text from various file formats.
-Supports PDF, DOCX, PPTX, and TXT files.
+Supports PDF, DOCX, and TXT files.
 """
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 import pypdf
 from docx import Document as DocxDocument
-from pptx import Presentation
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,6 @@ class DocumentProcessor:
     SUPPORTED_TYPES = {
         "application/pdf": ".pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
         "text/plain": ".txt"
     }
     
@@ -120,49 +118,6 @@ class DocumentProcessor:
             raise
     
     @staticmethod
-    def extract_text_from_pptx(file_path: str) -> tuple[str, Dict[str, Any]]:
-        """
-        Extract text from a PPTX file.
-        
-        Args:
-            file_path: Path to the PPTX file
-            
-        Returns:
-            Tuple of (extracted_text, metadata)
-        """
-        try:
-            prs = Presentation(file_path)
-            
-            slide_texts = []
-            for slide_num, slide in enumerate(prs.slides, 1):
-                slide_content = []
-                
-                # Extract text from all shapes in the slide
-                for shape in slide.shapes:
-                    if hasattr(shape, "text") and shape.text.strip():
-                        slide_content.append(shape.text.strip())
-                
-                if slide_content:
-                    slide_text = f"[Slide {slide_num}]\n" + "\n".join(slide_content)
-                    slide_texts.append(slide_text)
-            
-            full_text = "\n\n".join(slide_texts)
-            
-            metadata = {
-                "slide_count": len(prs.slides)
-            }
-            
-            if not full_text.strip():
-                raise ValueError("No text could be extracted from PPTX")
-            
-            logger.info(f"Extracted {len(full_text)} characters from {metadata['slide_count']} slides")
-            return full_text, metadata
-            
-        except Exception as e:
-            logger.error(f"Error processing PPTX file {file_path}: {e}")
-            raise
-    
-    @staticmethod
     def extract_text_from_txt(file_path: str) -> tuple[str, Dict[str, Any]]:
         """
         Extract text from a TXT file.
@@ -232,8 +187,6 @@ class DocumentProcessor:
             return DocumentProcessor.extract_text_from_pdf(file_path)
         elif content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
             return DocumentProcessor.extract_text_from_docx(file_path)
-        elif content_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-            return DocumentProcessor.extract_text_from_pptx(file_path)
         elif content_type == "text/plain":
             return DocumentProcessor.extract_text_from_txt(file_path)
         else:
