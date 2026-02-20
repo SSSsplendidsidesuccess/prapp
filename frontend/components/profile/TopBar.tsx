@@ -1,9 +1,8 @@
 "use client";
 
 import { LogOut, User, Home } from "lucide-react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { authApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TopBarProps {
   userName: string;
@@ -11,20 +10,10 @@ interface TopBarProps {
 }
 
 export default function TopBar({ userName, userEmail }: TopBarProps) {
-  const router = useRouter();
+  const { logout } = useAuth();
 
-  const handleLogout = async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      // Clear all auth data from localStorage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('prapp_profile_local');
-      // Redirect to login
-      router.push("/login");
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   return (
