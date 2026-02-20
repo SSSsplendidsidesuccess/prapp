@@ -23,7 +23,7 @@ export default function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      router.push('/profile');
+      router.push('/dashboard');
     }
   }, [user, authLoading, router]);
 
@@ -60,7 +60,7 @@ export default function SignupPage() {
     try {
       await signup(email, password, name);
       // Redirect will happen via useEffect when user state updates
-      router.push('/profile');
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
     } finally {

@@ -5,167 +5,114 @@ This document serves as the source of truth for the application structure, page 
 ## 1. Sitemap Structure
 
 ### Public Pages
-- **`/`**: Landing Page
+- **`/`**: Landing Page (Marketing)
 - **`/login`**: User Authentication
 - **`/signup`**: New User Registration
 - **`/forgot-password`**: Password Recovery Request
 - **`/reset-password`**: Password Reset Completion
 
 ### Protected Pages (App Core)
-- **`/profile`**: User Dashboard (Home) - The central hub for user activity.
-- **`/sales-setup`**: Session Configuration - Setup for a new sales practice session.
-- **`/session/[id]`**: Active Session Interface - The live chat interface and post-session evaluation.
-- **`/talk-points`**: AI Talk Points Generator - Tool to generate and manage sales talking points.
-- **`/knowledge-base`**: Document Management (RAG) - Interface to upload and manage reference documents.
+- **`/dashboard` (formerly `/profile`)**: Main User Dashboard - The central mission control for daily sales prep activities.
+- **`/profile`**: User Settings - Account management, subscription, and sales persona configuration.
+- **`/sales-setup`**: Session Configuration - Detailed setup for a new sales practice session.
+- **`/session/[id]`**: Active Session Interface - The live roleplay interface and post-session evaluation.
+- **`/talk-points`**: Battlecard Generator - Tool to generate and manage objection killers and talking points.
+- **`/knowledge-base`**: Sales Enablement (RAG) - Interface to upload product specs, case studies, and competitor info.
 
 ---
 
 ## 2. Page Inventory & Components
 
-### `/profile` (Dashboard)
-**Purpose:** The central landing page for authenticated users. It adapts based on the user's "activation state" (New vs. Activated) to guide them through their journey.
-
-**Architecture:** Modular component-based design with 9 extracted components in [`components/profile/`](../frontend/components/profile/).
-
+### `/dashboard` (Main Hub)
+**Purpose:** The "Mission Control" for the sales rep. Adapts based on the user's "activation state" to guide them from their first practice to daily habit formation.
+**Architecture:** Modular component-based design with extracted components in `components/profile/`.
 **Key Components:**
-- **[`TopBar`](../frontend/components/profile/TopBar.tsx:13):** User info display with Home navigation and Logout functionality. Uses [`AuthContext`](../frontend/contexts/AuthContext.tsx:17) for authentication state.
-- **[`Card`](../frontend/components/profile/Card.tsx:1):** Reusable card wrapper component for consistent styling.
-- **[`Chip`](../frontend/components/profile/Chip.tsx:13):** Interactive selection chips with icons and variants (default/selected).
-- **[`constants.ts`](../frontend/components/profile/constants.ts:1):** Centralized configuration data:
-    - `PREP_TYPES`: Sales, Pitch, Corporate, Interview
-    - `SUBTYPES_MAP`: Type-specific subtypes (e.g., Sales → Discovery, Demo, Negotiation, Closing)
-    - `TONE_OPTIONS`: Professional, Friendly, Assertive, Consultative
+- **TopBar:** Navigation to `Talk Points`, `Knowledge Base`, and `Profile` (Settings).
 - **Activation State Logic:**
-    - **New User View:**
-        - **[`PreparationInputs`](../frontend/components/profile/PreparationInputs.tsx:15):** Onboarding form with dynamic UI text that adapts based on selected preparation type. Features:
-            - Preparation type selection (Sales, Pitch, Corporate, Interview)
-            - Subtype selection (dynamically filtered based on type)
-            - Tone selection
-            - Meeting agenda input (with dynamic placeholder text)
-            - Background context input (with dynamic placeholder text)
-            - Document upload section (with dynamic button text)
-            - **Sales-focused by default** with sales-specific placeholder text
-        - "Start preparing" CTA button
+    - **New User View:** Shows `SalesPrepQuickStart` (formerly PreparationInputs) to get them into a roleplay immediately.
+        - **Inputs:** Deal Type (Discovery, Closing, Negotiation), Subtype, Tone, Agenda.
+        - **Dynamic Text:** All placeholders adapt to selected sales scenario.
     - **Activated View:**
-        - **[`ActivatedSummaryStrip`](../frontend/components/profile/ActivatedSummaryStrip.tsx:15):** Stats dashboard showing:
-            - Sessions completed this week
-            - Average score with trend indicators
-            - Training focus tags
-        - **[`ImprovementCard`](../frontend/components/profile/ImprovementCard.tsx:13):** AI-generated improvement suggestions with:
-            - Title and explanation
-            - Category tags
-            - "Practice" and "Learn More" action buttons
-        - **[`SessionSetupAccordion`](../frontend/components/profile/SessionSetupAccordion.tsx:15):** Collapsible quick-start session configuration that embeds `PreparationInputs` with training focus tags
-- **[`SessionList`](../frontend/components/profile/SessionList.tsx:13):** Displays recent practice sessions with:
-    - Session type, date, and score
-    - Empty state handling
-    - Click navigation to session details
+        - **`SalesPerformanceStrip`** (formerly ActivatedSummaryStrip): Dashboard showing "Deals Practiced", "Win Rate (Avg Score)", and "Current Training Focus" (e.g., Objection Handling).
+        - **`CoachSuggestions`** (formerly ImprovementCard): AI-driven suggestions like "Practice Price Negotiation for Enterprise Deals".
+        - **`QuickPrepAccordion`** (formerly SessionSetupAccordion): One-click access to start a new session.
+- **Session List:** "Recent Practice Sessions" with deal types and scores.
 
-**Data Management:**
-- Uses [`useProfile`](../frontend/hooks/useProfile.ts:51) hook for profile and session data
-- Uses [`AuthContext`](../frontend/contexts/AuthContext.tsx:17) for user authentication state
-- Default preparation type is "Sales"
-- Loads sessions from backend API [`/api/v1/sessions`](../backend/app/api/sessions.py:132)
-
-**Dynamic UI Features:**
-- All placeholder text adapts based on selected preparation type (Sales, Pitch, Corporate, Interview)
-- Sales-focused default state with sales-specific terminology
-- Smooth animations using Framer Motion
-
-### `/sales-setup`
-**Purpose:** A dedicated configuration page for setting up a detailed sales practice session. This is likely the destination for a more comprehensive setup flow than the quick start on the profile.
+### `/profile` (Settings)
+**Purpose:** Configuration area for user account and persistent preferences.
 **Key Components:**
-- **CompanyProfileForm:** Input for company name, description, value proposition, and industry.
-- **SalesSessionSetup:** Inputs for Customer Name, Persona, Deal Stage.
-- **Optional Context:** Fields for Meeting Agenda, Tone, and Background Context.
-- **Start Button:** Triggers session creation and redirects to `/session/[id]`.
+- **Account Details:** Name, Email, Password reset.
+- **Sales Persona Config:**
+    - "My Role" (e.g., AE, SDR, CSM).
+    - "My Industry" (e.g., SaaS, Pharma).
+    - "Default Methodology" (e.g., MEDDIC, SPIN, Challenger).
+- **Subscription Management:** Plan details and billing.
 
-### `/session/[id]`
-**Purpose:** The core interactive experience. Handles both the live AI roleplay session and the post-session performance evaluation.
+### `/sales-setup` (Deep Dive Setup)
+**Purpose:** Advanced configuration for high-stakes deal preparation. More detailed than the dashboard quick start.
 **Key Components:**
-- **Live Session View:**
-    - **Chat Interface:** Real-time messaging with the AI.
-    - **Session Timer:** Tracks duration.
-    - **Context Banner:** Displays active session parameters (Customer, Deal Stage).
-    - **RAG Citations:** AI messages show "Used X documents" with a clickable source viewer (`ContextSourcesModal`).
-    - **Control Bar:** Input field, "End Session" button.
-- **Evaluation View (Post-Session):**
-    - **Score Display:** Overall score and dimension breakdown.
-    - **SalesEvaluationDisplay:** Detailed breakdown of sales-specific metrics.
-    - **Strengths & Improvements:** actionable feedback.
-    - **Return to Profile CTA.**
+- **Deal Context Form:**
+    - **Customer Name & Industry.**
+    - **Deal Value & Stage.**
+    - **Key Decision Makers** (Buyer Personas).
+- **Battlecard Selector:** Option to load specific documents from Knowledge Base.
+- **Scenario Builder:** "What's the hardest objection you expect?" input.
 
-### `/talk-points`
-**Purpose:** A tool for users to generate specific talking points based on their uploaded knowledge base, helping them prepare for specific sales scenarios.
+### `/session/[id]` (The Dojo)
+**Purpose:** The core interactive roleplay experience and feedback loop.
 **Key Components:**
-- **Generator/Display Toggle:** Switches between the creation form and the result view.
-- **TalkPointsGenerator:** Form to request new points (Topic, Audience, Goal).
-- **TalkPointsDisplay:** Renders the generated points with citations.
-- **History Sidebar:** List of previously generated talk points with delete functionality.
+- **Live Roleplay View:**
+    - **AI Customer Persona:** Simulates the specific buyer (e.g., "Skeptical CFO").
+    - **Live Feedback:** (Future) Real-time hints like "Slow down" or "Ask an open-ended question".
+    - **RAG Citations:** "Referenced [Product Spec v2] for pricing answer".
+- **Evaluation View (Post-Call):**
+    - **Sales Scorecard:** Grades on Discovery, Empathy, Objection Handling, and Closing.
+    - **Deal Probability:** AI estimation of deal success based on the practice.
+    - **Action Plan:** "3 things to do in the real call".
 
-### `/knowledge-base`
-**Purpose:** Management interface for the Retrieval-Augmented Generation (RAG) system. Users upload documents that the AI uses to ground its responses.
+### `/talk-points` (Battlecards)
+**Purpose:** Rapid generation of "Cheat Sheets" for live calls.
 **Key Components:**
-- **DocumentUploadZone:** Drag-and-drop area for uploading files (PDF, DOCX, TXT).
-- **DocumentTable:** List of uploaded files with status and delete actions.
-- **DocumentViewerModal:** Preview functionality for uploaded documents.
-- **Status Indicators:** Shows total document count and processing status.
+- **Objection Killer Generator:** Input an objection ("Your price is too high"), get 3 data-backed responses.
+- **Value Prop Generator:** Generate pitch points for specific buyer personas.
+- **Saved Battlecards:** Library of previously generated points.
+
+### `/knowledge-base` (Sales Enablement)
+**Purpose:** The "Brain" of the sales assistant. Storage for company-specific knowledge.
+**Key Components:**
+- **Upload Zone:** Drag-and-drop for PDF/DOCX (Product Specs, Pricing Sheets, Competitor Analysis).
+- **Document Manager:** List of active knowledge sources.
+- **Processing Status:** Indicator of RAG indexing progress.
 
 ---
 
 ## 3. User Journeys
 
-### Journey A: New User Onboarding
-*Goal: Get the user to their first "Aha!" moment (completing a session) as quickly as possible.*
+### Journey A: The "Morning Warm-up" (Daily Habit)
+*Goal: Get into the "zone" before calls start.*
+1.  **Login**: Rep logs in to `/dashboard`.
+2.  **Quick Start**: Sees "Handle Objections" as current training focus.
+3.  **One-Click Prep**: Clicks "Practice Now" on the suggestion card.
+4.  **Micro-Session**: Does a 5-minute roleplay handling "We have no budget".
+5.  **Feedback**: Gets a score of 85/100 and one tip ("Acknowledge before countering").
+6.  **Done**: Returns to dashboard, streak counter increases.
 
-1.  **Landing (`/`)**: User explores value prop and clicks "Get Started".
-2.  **Signup (`/signup`)**: User creates an account.
-3.  **Profile - New State (`/profile`)**:
-    *   User lands on the dashboard in the "New" state.
-    *   They see the **PreparationInputs** form immediately.
-    *   They select a "Preparation Type" (e.g., Sales) and "Subtype".
-    *   They click **"Start preparing"**.
-4.  **Active Session (`/session/[id]`)**:
-    *   User enters the chat interface.
-    *   AI initiates the roleplay based on the selected type.
-    *   User exchanges at least 3 messages.
-    *   User clicks **"End Session"**.
-5.  **Evaluation (`/session/[id]`)**:
-    *   System generates feedback.
-    *   User reviews their score and insights.
-    *   User clicks **"Return to Profile"**.
-6.  **Profile - Activated State (`/profile`)**:
-    *   User returns to the dashboard.
-    *   The view has transformed to the "Activated" state, showing their first session stats and "Next improvements".
+### Journey B: The "Big Deal" Prep (Deep Dive)
+*Goal: Prepare for a specific, high-stakes Enterprise closing call.*
+1.  **Enablement**: Goes to `/knowledge-base`, uploads the specific client's RFP document.
+2.  **Setup**: Navigates to `/sales-setup`.
+3.  **Context**: Enters "Acme Corp", "Closing Stage", "Role: CTO (Technical & Skeptical)".
+4.  **Simulation**:
+    - AI acts as the CTO, drilling into technical security questions from the uploaded RFP.
+    - Rep practices navigating these questions.
+5.  **Review**: Post-session analysis highlights a weak answer on "Data Sovereignty".
+6.  **Refine**: Rep generates specific `/talk-points` for "Data Sovereignty" to keep on screen during the real call.
 
-### Journey B: The "Power User" Prep (RAG-Enhanced)
-*Goal: Prepare for a specific, high-stakes sales call using company materials.*
-
-1.  **Knowledge Base (`/knowledge-base`)**:
-    *   User navigates to Knowledge Base from the Top Bar.
-    *   User uploads a product spec sheet and a case study.
-    *   User confirms documents are processed.
-2.  **Sales Setup (`/sales-setup`)**:
-    *   User navigates to Sales Setup.
-    *   User fills out the **Company Profile** (or it loads from saved).
-    *   User defines the **Customer Persona** (e.g., "Skeptical CTO").
-    *   User sets **Deal Stage** to "Discovery".
-    *   User clicks **"Start Sales Practice"**.
-3.  **Active Session (`/session/[id]`)**:
-    *   AI starts the conversation, referencing the uploaded product spec in its questions or objections.
-    *   User notices the "Used 2 documents" citation in the AI's response.
-    *   User practices handling objections based on the case study data.
-
-### Journey C: Talk Points Generation
-*Goal: Quick generation of cheat sheets before a call.*
-
-1.  **Talk Points (`/talk-points`)**:
-    *   User navigates to Talk Points.
-    *   User clicks **"Generate New"**.
-    *   User enters Topic: "Pricing objection handling for Enterprise plan".
-    *   System generates a list of key points using the Knowledge Base.
-2.  **Review & Refine**:
-    *   User reviews the generated points.
-    *   User clicks a citation to verify the source document.
-    *   User keeps this tab open during their real call (or the practice session).
-
+### Journey C: New Rep Onboarding
+*Goal: Assess baseline skills.*
+1.  **Signup**: Rep creates account.
+2.  **Dashboard (New)**: Lands on `/dashboard` (New State).
+3.  **Assessment**: Prompted to "Take Baseline Assessment".
+4.  **Scenario**: Runs through a standard "Discovery Call" scenario.
+5.  **Placement**: System rates them as "Intermediate" and sets initial Training Focus to "Closing Techniques".
+6.  **Activation**: Dashboard transforms to Activated state with personalized plan.

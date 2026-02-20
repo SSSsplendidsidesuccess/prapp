@@ -2,66 +2,50 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Play } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useProfile, TrainingFocus, Session } from '@/hooks/useProfile';
+import { Loader2, Save } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { sessionApi, SessionCreate, PreparationType } from '@/lib/api';
-
-// Import extracted components
 import TopBar from '@/components/profile/TopBar';
-import PreparationInputs from '@/components/profile/PreparationInputs';
-import ActivatedSummaryStrip from '@/components/profile/ActivatedSummaryStrip';
-import SessionList from '@/components/profile/SessionList';
-import ImprovementCard from '@/components/profile/ImprovementCard';
-import SessionSetupAccordion from '@/components/profile/SessionSetupAccordion';
+import Card from '@/components/profile/Card';
 
-// Mock data for improvements (will be replaced with API data)
-const DEFAULT_IMPROVEMENTS = [
-  {
-    title: "Start with the short answer",
-    text: "It makes you sound confident and saves time.",
-    tags: ["Conciseness", "Executive summary"],
-    focus: {
-      title: "Start with the short answer",
-      tags: ["Conciseness", "Executive summary"],
-      agendaTemplate: "Give 3 answers using: short answer → 2 details → close. Topics: pricing objection, timeline risk, leadership example."
-    }
-  },
-  {
-    title: "Use STAR in the same order",
-    text: "It keeps your story clear and easy to follow.",
-    tags: ["Structure", "Behavioral"],
-    focus: {
-      title: "Use STAR in the same order",
-      tags: ["Structure", "Behavioral"],
-      agendaTemplate: "Answer 2 behavioral questions using STAR. Focus on: impact, numbers, your role."
-    }
-  },
-  {
-    title: "Handle objections in 3 steps",
-    text: "You stay calm and move the conversation forward.",
-    tags: ["Objections", "Sales / Discovery"],
-    focus: {
-      title: "Handle objections in 3 steps",
-      tags: ["Objections", "Sales / Discovery"],
-      agendaTemplate: "Practice: acknowledge → reframe → ask a question. Use 3 objections: price, timeline, competition."
-    }
-  }
+// Sales persona options
+const ROLES = [
+  { value: 'ae', label: 'Account Executive (AE)' },
+  { value: 'sdr', label: 'Sales Development Rep (SDR)' },
+  { value: 'csm', label: 'Customer Success Manager (CSM)' },
+  { value: 'sales_manager', label: 'Sales Manager' },
 ];
 
-function ProfilePageContent() {
+const INDUSTRIES = [
+  { value: 'saas', label: 'SaaS' },
+  { value: 'pharma', label: 'Pharma' },
+  { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'financial_services', label: 'Financial Services' },
+];
+
+const METHODOLOGIES = [
+  { value: 'meddic', label: 'MEDDIC' },
+  { value: 'spin', label: 'SPIN' },
+  { value: 'challenger', label: 'Challenger' },
+  { value: 'sandler', label: 'Sandler' },
+];
+
+function ProfileSettingsContent() {
   const router = useRouter();
   const { user } = useAuth();
-  const { profile, updateProfile, refreshSessions, isLoaded } = useProfile();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accordionOpen, setAccordionOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Form state
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [role, setRole] = useState('ae');
+  const [industry, setIndustry] = useState('saas');
+  const [methodology, setMethodology] = useState('meddic');
 
   // Show loading state
-  if (!isLoaded || !user) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
@@ -69,53 +53,22 @@ function ProfilePageContent() {
     );
   }
 
-  const isActivated = profile.activationState === 'activated';
-
-  const handleStartSession = async () => {
-    setIsSubmitting(true);
-    setError(null);
+  const handleSave = async () => {
+    setIsSaving(true);
+    setSuccessMessage(null);
     
     try {
-      const sessionData: SessionCreate = {
-        preparation_type: profile.preparationType as PreparationType,
-        meeting_subtype: profile.meetingSubtype || undefined,
-        agenda: profile.agenda || undefined,
-        tone: profile.tone,
-        role_context: profile.cvText || undefined
-      };
-
-      const session = await sessionApi.createSession(sessionData);
-      await refreshSessions();
-      router.push(`/session/${session.session_id}`);
+      // TODO: Implement API call to save settings
+      // For now, just simulate a save
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSuccessMessage('Settings saved successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      console.error('Failed to create session:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create session');
-      setIsSubmitting(false);
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsSaving(false);
     }
-  };
-
-  const scrollToSetup = () => {
-    const setupSection = document.getElementById('session-setup');
-    if (setupSection) {
-      setupSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setAccordionOpen(true);
-    }
-  };
-
-  const handlePractice = (focus: TrainingFocus) => {
-    updateProfile({ trainingFocus: focus });
-    scrollToSetup();
-  };
-
-  const handleFocusChange = (focusTitle: string) => {
-    const improvement = DEFAULT_IMPROVEMENTS.find(imp => imp.title === focusTitle);
-    if (improvement) {
-      updateProfile({ trainingFocus: improvement.focus });
-    }
-  };
-
-  const handleSessionClick = (session: Session) => {
-    router.push(`/session/${session.id}`);
   };
 
   return (
@@ -123,125 +76,158 @@ function ProfilePageContent() {
       <TopBar userName={user.name} userEmail={user.email} />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400 text-sm">
-            {error}
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+          <p className="text-slate-400">Manage your account and sales persona configuration</p>
+        </div>
+
+        {successMessage && (
+          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-green-400 text-sm">
+            {successMessage}
           </div>
         )}
 
-        {isActivated ? (
-          <motion.div
-            key="activated"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-8"
-          >
-            <ActivatedSummaryStrip
-              sessionsThisWeek={2}
-              sessionGoal={3}
-              avgScore={74}
-              scoreChange={11}
-              trendScores={[62, 68, 71, 73, 74]}
-              currentFocus={profile.trainingFocus?.title}
-              onFocusClick={handleFocusChange}
-            />
+        {/* Account Details Section */}
+        <Card>
+          <h2 className="text-xl font-bold text-white mb-4">Account Details</h2>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-2">
+                Name
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                placeholder="Your name"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+                placeholder="your@email.com"
+              />
+            </div>
 
-            <section>
-              <h2 className="text-xl font-bold text-white mb-4 px-1">Focus on what matters</h2>
-              <div className="space-y-3">
-                {DEFAULT_IMPROVEMENTS.map((imp, i) => (
-                  <ImprovementCard
-                    key={i}
-                    title={imp.title}
-                    text={imp.text}
-                    tags={imp.tags}
-                    onPractice={() => handlePractice(imp.focus)}
-                    onExample={() => {/* TODO: Show example modal */}}
-                  />
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Password
+              </label>
+              <button
+                onClick={() => router.push('/forgot-password')}
+                className="text-amber-400 hover:text-amber-300 text-sm font-medium transition-colors"
+              >
+                Reset password →
+              </button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Sales Persona Config Section */}
+        <Card>
+          <h2 className="text-xl font-bold text-white mb-4">Sales Persona Configuration</h2>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-slate-300 mb-2">
+                My Role
+              </label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              >
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
                 ))}
-              </div>
-            </section>
-
-            <SessionList
-              sessions={profile.sessions}
-              onSessionClick={handleSessionClick}
-              onViewAll={() => router.push('/sessions')}
-            />
-
-            <SessionSetupAccordion
-              profile={profile}
-              updateProfile={updateProfile}
-              isOpen={accordionOpen}
-              setIsOpen={setAccordionOpen}
-            />
-
-            {/* Start Session Button */}
-            <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-8 pb-6 px-4">
-              <div className="max-w-3xl mx-auto">
-                <button
-                  onClick={handleStartSession}
-                  disabled={isSubmitting}
-                  className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-4 rounded-xl shadow-2xl shadow-amber-400/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Starting session...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5" />
-                      Start practice session
-                    </>
-                  )}
-                </button>
-              </div>
+              </select>
             </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="new"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-8"
+
+            <div>
+              <label htmlFor="industry" className="block text-sm font-medium text-slate-300 mb-2">
+                My Industry
+              </label>
+              <select
+                id="industry"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              >
+                {INDUSTRIES.map((i) => (
+                  <option key={i.value} value={i.value}>
+                    {i.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="methodology" className="block text-sm font-medium text-slate-300 mb-2">
+                Default Methodology
+              </label>
+              <select
+                id="methodology"
+                value={methodology}
+                onChange={(e) => setMethodology(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
+              >
+                {METHODOLOGIES.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium transition-colors"
           >
-            <PreparationInputs profile={profile} updateProfile={updateProfile} />
-
-            {/* Start Session Button */}
-            <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-8 pb-6 px-4">
-              <div className="max-w-3xl mx-auto">
-                <button
-                  onClick={handleStartSession}
-                  disabled={isSubmitting || !profile.preparationType}
-                  className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-4 rounded-xl shadow-2xl shadow-amber-400/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Starting session...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5" />
-                      Start practice session
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                Save Changes
+              </>
+            )}
+          </button>
+        </div>
       </main>
     </div>
   );
 }
 
-export default function ProfilePage() {
+export default function ProfileSettingsPage() {
   return (
     <ProtectedRoute>
-      <ProfilePageContent />
+      <ProfileSettingsContent />
     </ProtectedRoute>
   );
 }

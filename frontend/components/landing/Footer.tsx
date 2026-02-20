@@ -21,8 +21,8 @@ const Footer = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-8">
               Ready to begin?
             </h2>
-            <Link 
-              href="/profile" 
+            <Link
+              href="/dashboard"
               className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-slate-950 px-8 py-4 rounded-lg font-bold text-lg transition-all hover:scale-105 shadow-lg shadow-amber-400/20"
             >
               Start preparing

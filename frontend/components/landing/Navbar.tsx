@@ -65,7 +65,7 @@ const Navbar = () => {
             {user ? (
               <>
                 <Link
-                  href="/profile"
+                  href="/dashboard"
                   className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-sm font-medium"
                 >
                   <User size={16} />
@@ -132,7 +132,7 @@ const Navbar = () => {
               {user ? (
                 <>
                   <Link
-                    href="/profile"
+                    href="/dashboard"
                     className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-base font-medium"
                   >
                     <User size={16} />

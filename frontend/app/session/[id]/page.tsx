@@ -215,8 +215,8 @@ export default function SessionPage() {
         </div>
         <h2 className="text-3xl font-bold mb-2">Session Error</h2>
         <p className="text-slate-400 max-w-md mb-8 text-center">{error}</p>
-        <Link 
-          href="/profile"
+        <Link
+          href="/dashboard"
           className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 px-8 rounded-lg transition-colors"
         >
           Return to Profile
@@ -328,8 +328,8 @@ export default function SessionPage() {
           )}
         </div>
 
-        <Link 
-          href="/profile"
+        <Link
+          href="/dashboard"
           className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-3 px-8 rounded-lg transition-colors"
         >
           Return to Profile
@@ -356,8 +356,8 @@ export default function SessionPage() {
               {session.meeting_subtype && ` • ${session.meeting_subtype}`}
             </span>
           )}
-          <button 
-            onClick={() => router.push('/profile')}
+          <button
+            onClick={() => router.push('/dashboard')}
             className="text-slate-400 hover:text-white text-sm transition-colors"
           >
             Exit

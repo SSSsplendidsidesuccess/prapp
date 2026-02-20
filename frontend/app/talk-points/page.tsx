@@ -100,7 +100,7 @@ function TalkPointsPageContent() {
       <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push('/profile')}
+            onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center">
@@ -109,7 +109,7 @@ function TalkPointsPageContent() {
             <span className="font-bold text-white text-lg tracking-tight">prapp</span>
           </button>
           <button
-            onClick={() => router.push('/profile')}
+            onClick={() => router.push('/dashboard')}
             className="flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-amber-400 transition-colors"
           >
             <ChevronRight size={16} className="rotate-180" />
