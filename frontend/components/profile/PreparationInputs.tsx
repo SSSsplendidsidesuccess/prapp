@@ -31,6 +31,22 @@ export default function PreparationInputs({ profile, updateProfile }: Preparatio
     }
   };
 
+  // Dynamic upload button text based on preparation type
+  const getUploadButtonText = () => {
+    switch (profile.preparationType) {
+      case 'Sales':
+        return "Upload sales materials (optional)";
+      case 'Pitch':
+        return "Upload pitch deck (optional)";
+      case 'Corporate':
+        return "Upload documents (optional)";
+      case 'Interview':
+        return "Upload CV (optional)";
+      default:
+        return "Upload document (optional)";
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* 1. Preparation Type Selection */}
@@ -160,7 +176,7 @@ export default function PreparationInputs({ profile, updateProfile }: Preparatio
             
             <button className="flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors">
               <Upload size={14} />
-              Upload CV (optional)
+              {getUploadButtonText()}
             </button>
           </div>
         </Card>
