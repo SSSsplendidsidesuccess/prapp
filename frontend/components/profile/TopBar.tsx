@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut, User, Home } from "lucide-react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,10 +11,12 @@ interface TopBarProps {
 }
 
 export default function TopBar({ userName, userEmail }: TopBarProps) {
+  const router = useRouter();
   const { logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
   };
 
   return (
