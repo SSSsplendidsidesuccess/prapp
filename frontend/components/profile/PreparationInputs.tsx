@@ -15,6 +15,24 @@ interface PreparationInputsProps {
 export default function PreparationInputs({ profile, updateProfile }: PreparationInputsProps) {
   const currentSubtypes = SUBTYPES_MAP[profile.preparationType] || [];
 
+  // Dynamic agenda placeholder based on preparation type
+  const getAgendaPlaceholder = () => {
+    switch (profile.preparationType) {
+      case 'Sales':
+        return "e.g. Discuss product features, handle pricing objections, close the deal, address competitor comparisons...";
+      case 'Pitch':
+        return "e.g. Present the problem, explain our solution, share traction metrics, discuss funding needs...";
+      case 'Corporate':
+        return "e.g. Discuss the Q3 roadmap, review budget allocation, align on strategic priorities...";
+      case 'Interview':
+        return "e.g. Walk through my resume, discuss the Q3 roadmap, handle objections about pricing...";
+      case 'Presentation':
+        return "e.g. Introduce the topic, present key findings, engage with Q&A...";
+      default:
+        return "e.g. Key topics and goals for this conversation...";
+    }
+  };
+
   // Dynamic placeholder based on preparation type
   const getBackgroundPlaceholder = () => {
     switch (profile.preparationType) {
@@ -116,7 +134,7 @@ export default function PreparationInputs({ profile, updateProfile }: Preparatio
               <textarea
                 value={profile.agenda}
                 onChange={(e) => updateProfile({ agenda: e.target.value })}
-                placeholder="e.g. Walk through my resume, discuss the Q3 roadmap, handle objections about pricing..."
+                placeholder={getAgendaPlaceholder()}
                 className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/50 transition-all min-h-[100px] resize-y"
               />
             </div>
