@@ -58,6 +58,7 @@ function ProfilePageContent() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
   // Load user data
   React.useEffect(() => {
@@ -67,19 +68,26 @@ function ProfilePageContent() {
         setUser(userData);
       } catch (err) {
         console.error('Failed to load user:', err);
+        // Set fallback user data if API fails
+        setUser({ name: 'User', email: 'user@example.com' });
+      } finally {
+        setUserLoading(false);
       }
     };
     loadUser();
   }, []);
 
   // Show loading state
-  if (!isLoaded || !user) {
+  if (!isLoaded || userLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
       </div>
     );
   }
+
+  // Ensure user is set (should always be true after loading)
+  const currentUser = user || { name: 'User', email: 'user@example.com' };
 
   const isActivated = profile.activationState === 'activated';
 
@@ -132,7 +140,7 @@ function ProfilePageContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 pb-32">
-      <TopBar userName={user.name} userEmail={user.email} />
+      <TopBar userName={currentUser.name} userEmail={currentUser.email} />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {error && (
