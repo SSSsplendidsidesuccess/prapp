@@ -15,6 +15,22 @@ interface PreparationInputsProps {
 export default function PreparationInputs({ profile, updateProfile }: PreparationInputsProps) {
   const currentSubtypes = SUBTYPES_MAP[profile.preparationType] || [];
 
+  // Dynamic placeholder based on preparation type
+  const getBackgroundPlaceholder = () => {
+    switch (profile.preparationType) {
+      case 'Sales':
+        return "Share your sales experience, product knowledge, or company background to help the AI simulate realistic customer conversations...";
+      case 'Pitch':
+        return "Describe your startup, product, or idea. Include your role, key metrics, and what makes it unique...";
+      case 'Corporate':
+        return "Share your role, team, and relevant project context to help the AI ask strategic questions...";
+      case 'Interview':
+        return "Paste your CV, LinkedIn summary, or bio here to personalize the AI's questions...";
+      default:
+        return "Share relevant background information to personalize your practice session...";
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* 1. Preparation Type Selection */}
@@ -138,7 +154,7 @@ export default function PreparationInputs({ profile, updateProfile }: Preparatio
             <textarea
               value={profile.cvText}
               onChange={(e) => updateProfile({ cvText: e.target.value })}
-              placeholder="Paste your CV, LinkedIn summary, or bio here to personalize the AI's questions..."
+              placeholder={getBackgroundPlaceholder()}
               className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/50 transition-all min-h-[80px] resize-y"
             />
             
