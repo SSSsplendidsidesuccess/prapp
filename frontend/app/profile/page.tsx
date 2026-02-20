@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Play, ChevronRight } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProfile, TrainingFocus, Session } from '@/hooks/useProfile';
+import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { sessionApi, SessionCreate, PreparationType, authApi } from '@/lib/api';
+import { sessionApi, SessionCreate, PreparationType } from '@/lib/api';
 
 // Import extracted components
 import TopBar from '@/components/profile/TopBar';
@@ -52,42 +53,21 @@ const DEFAULT_IMPROVEMENTS = [
 
 function ProfilePageContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const { profile, updateProfile, refreshSessions, isLoaded } = useProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accordionOpen, setAccordionOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
-  const [userLoading, setUserLoading] = useState(true);
-
-  // Load user data
-  React.useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await authApi.getCurrentUser();
-        setUser(userData);
-      } catch (err) {
-        console.error('Failed to load user:', err);
-        // Set fallback user data if API fails
-        setUser({ name: 'User', email: 'user@example.com' });
-      } finally {
-        setUserLoading(false);
-      }
-    };
-    loadUser();
-  }, []);
 
   // Show loading state
-  if (!isLoaded || userLoading) {
+  if (!isLoaded || !user) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
       </div>
     );
   }
-
-  // Ensure user is set (should always be true after loading)
-  const currentUser = user || { name: 'User', email: 'user@example.com' };
 
   const isActivated = profile.activationState === 'activated';
 
@@ -140,7 +120,7 @@ function ProfilePageContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 pb-32">
-      <TopBar userName={currentUser.name} userEmail={currentUser.email} />
+      <TopBar userName={user.name} userEmail={user.email} />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
         {error && (
