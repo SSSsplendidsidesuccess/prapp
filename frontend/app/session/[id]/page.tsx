@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useProfile } from '../../../hooks/useProfile';
-import { Loader2, CheckCircle, ArrowLeft, Send, Mic, X, BookOpen, FileText } from 'lucide-react';
+import { useVoiceInput } from '../../../hooks/useVoiceInput';
+import { Loader2, CheckCircle, ArrowLeft, Send, Mic, MicOff, X, BookOpen, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { sessionApi, SessionResponse, ChatMessage, SessionEvaluationResponse, documentsApi } from '@/lib/api';
 import { ContextSourcesModal, SalesEvaluationDisplay } from '@/components/sales';
@@ -29,6 +30,17 @@ export default function SessionPage() {
   const [showContextModal, setShowContextModal] = useState(false);
   const [selectedContextIds, setSelectedContextIds] = useState<string[]>([]);
   const [documentCount, setDocumentCount] = useState(0);
+  
+  // Voice input hook
+  const {
+    isListening,
+    transcript,
+    error: voiceError,
+    startListening,
+    stopListening,
+    resetTranscript,
+    isSupported: isVoiceSupported,
+  } = useVoiceInput();
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,6 +84,36 @@ export default function SessionPage() {
     }
   }, [session]);
 
+  // Sync voice transcript to input message
+  useEffect(() => {
+    if (transcript) {
+      setInputMessage(transcript);
+    }
+  }, [transcript]);
+
+  // Handle voice input errors
+  useEffect(() => {
+    if (voiceError) {
+      setError(voiceError);
+      // Clear voice error after 5 seconds
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [voiceError]);
+
+  /**
+   * Toggle voice recording
+   */
+  const handleVoiceToggle = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
   /**
    * Load session data from backend
    */
@@ -113,6 +155,9 @@ export default function SessionPage() {
     setInputMessage('');
     setIsSending(true);
     setError(null);
+    
+    // Reset voice transcript when sending
+    resetTranscript();
 
     try {
       // Add user message to UI immediately
@@ -482,17 +527,43 @@ export default function SessionPage() {
       {/* Input Area */}
       <div className="p-4 border-t border-white/10 bg-slate-900/50 backdrop-blur-md">
         <div className="max-w-3xl mx-auto">
+          {/* Voice listening indicator */}
+          {isListening && (
+            <div className="mb-2 flex items-center justify-center gap-2 text-sm text-amber-400">
+              <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
+              <span>Listening...</span>
+            </div>
+          )}
+          
           <div className="bg-slate-950 border border-white/10 rounded-xl p-2 flex items-center gap-2">
-            <input 
+            <input
               ref={inputRef}
-              type="text" 
+              type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type your response..." 
+              placeholder={isListening ? "Speak now..." : "Type your response..."}
               className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder:text-slate-600 px-2"
               disabled={isSending}
             />
+            
+            {/* Microphone Button */}
+            {isVoiceSupported && (
+              <button
+                onClick={handleVoiceToggle}
+                disabled={isSending}
+                className={`p-2 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isListening
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'
+                }`}
+                title={isListening ? "Click to stop recording" : "Click to speak"}
+              >
+                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              </button>
+            )}
+            
+            {/* Send Button */}
             <button
               onClick={handleSendMessage}
               disabled={!inputMessage.trim() || isSending}
@@ -501,7 +572,9 @@ export default function SessionPage() {
             >
               <Send size={20} />
             </button>
-            <button 
+            
+            {/* End Session Button */}
+            <button
               onClick={handleCompleteSession}
               disabled={messages.length < 6}
               className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -511,7 +584,7 @@ export default function SessionPage() {
             </button>
           </div>
           <p className="text-center text-xs text-slate-600 mt-2">
-            Press Enter to send • Have at least 3 exchanges before ending
+            {isVoiceSupported && 'Click mic to speak • '}Press Enter to send • Have at least 3 exchanges before ending
           </p>
         </div>
       </div>
