@@ -24,13 +24,53 @@ This document serves as the source of truth for the application structure, page 
 
 ### `/profile` (Dashboard)
 **Purpose:** The central landing page for authenticated users. It adapts based on the user's "activation state" (New vs. Activated) to guide them through their journey.
+
+**Architecture:** Modular component-based design with 9 extracted components in [`components/profile/`](../frontend/components/profile/).
+
 **Key Components:**
-- **TopBar:** Navigation to other core features (`Talk Points`, `Knowledge Base`).
+- **[`TopBar`](../frontend/components/profile/TopBar.tsx:13):** User info display with Home navigation and Logout functionality. Uses [`AuthContext`](../frontend/contexts/AuthContext.tsx:17) for authentication state.
+- **[`Card`](../frontend/components/profile/Card.tsx:1):** Reusable card wrapper component for consistent styling.
+- **[`Chip`](../frontend/components/profile/Chip.tsx:13):** Interactive selection chips with icons and variants (default/selected).
+- **[`constants.ts`](../frontend/components/profile/constants.ts:1):** Centralized configuration data:
+    - `PREP_TYPES`: Sales, Pitch, Corporate, Interview
+    - `SUBTYPES_MAP`: Type-specific subtypes (e.g., Sales → Discovery, Demo, Negotiation, Closing)
+    - `TONE_OPTIONS`: Professional, Friendly, Assertive, Consultative
 - **Activation State Logic:**
-    - **New User View:** Shows `PreparationInputs` to guide the user to their first session.
-    - **Activated View:** Shows `ActivatedSummaryStrip` (stats), `ImprovementCard` (suggested actions), and `SessionSetupAccordion` (quick start).
-- **Session List:** Displays recent practice sessions with scores and types.
-- **Quick Actions:** "Start preparing" / "Start new session" CTA.
+    - **New User View:**
+        - **[`PreparationInputs`](../frontend/components/profile/PreparationInputs.tsx:15):** Onboarding form with dynamic UI text that adapts based on selected preparation type. Features:
+            - Preparation type selection (Sales, Pitch, Corporate, Interview)
+            - Subtype selection (dynamically filtered based on type)
+            - Tone selection
+            - Meeting agenda input (with dynamic placeholder text)
+            - Background context input (with dynamic placeholder text)
+            - Document upload section (with dynamic button text)
+            - **Sales-focused by default** with sales-specific placeholder text
+        - "Start preparing" CTA button
+    - **Activated View:**
+        - **[`ActivatedSummaryStrip`](../frontend/components/profile/ActivatedSummaryStrip.tsx:15):** Stats dashboard showing:
+            - Sessions completed this week
+            - Average score with trend indicators
+            - Training focus tags
+        - **[`ImprovementCard`](../frontend/components/profile/ImprovementCard.tsx:13):** AI-generated improvement suggestions with:
+            - Title and explanation
+            - Category tags
+            - "Practice" and "Learn More" action buttons
+        - **[`SessionSetupAccordion`](../frontend/components/profile/SessionSetupAccordion.tsx:15):** Collapsible quick-start session configuration that embeds `PreparationInputs` with training focus tags
+- **[`SessionList`](../frontend/components/profile/SessionList.tsx:13):** Displays recent practice sessions with:
+    - Session type, date, and score
+    - Empty state handling
+    - Click navigation to session details
+
+**Data Management:**
+- Uses [`useProfile`](../frontend/hooks/useProfile.ts:51) hook for profile and session data
+- Uses [`AuthContext`](../frontend/contexts/AuthContext.tsx:17) for user authentication state
+- Default preparation type is "Sales"
+- Loads sessions from backend API [`/api/v1/sessions`](../backend/app/api/sessions.py:132)
+
+**Dynamic UI Features:**
+- All placeholder text adapts based on selected preparation type (Sales, Pitch, Corporate, Interview)
+- Sales-focused default state with sales-specific terminology
+- Smooth animations using Framer Motion
 
 ### `/sales-setup`
 **Purpose:** A dedicated configuration page for setting up a detailed sales practice session. This is likely the destination for a more comprehensive setup flow than the quick start on the profile.
@@ -128,3 +168,4 @@ This document serves as the source of truth for the application structure, page 
     *   User reviews the generated points.
     *   User clicks a citation to verify the source document.
     *   User keeps this tab open during their real call (or the practice session).
+
