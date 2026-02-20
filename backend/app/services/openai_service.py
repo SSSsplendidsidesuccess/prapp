@@ -1,12 +1,13 @@
 """
-OpenAI service for AI-powered PRD generation and enhancement.
+OpenAI service for AI-powered PRD generation, enhancement, and playbook generation.
 Handles GPT-4 integration with comprehensive prompt engineering.
 """
 from openai import AsyncOpenAI
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 import logging
 import json
 from app.core.config import settings
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -927,6 +928,321 @@ Return your response as a valid JSON object with the specified fields."""
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
+
+
+    async def generate_playbook_structure(
+        self,
+        target_persona: Optional[str],
+        industry: Optional[str],
+        product_line: Optional[str],
+        goals: List[str]
+    ) -> Dict:
+        """
+        Generate a playbook structure with suggested scenarios based on high-level input.
+        
+        Args:
+            target_persona: Target customer persona (e.g., "CTO", "CFO")
+            industry: Target industry (e.g., "SaaS", "Healthcare")
+            product_line: Product line (e.g., "Enterprise Security")
+            goals: Business goals (e.g., ["Increase adoption", "Upsell premium features"])
+            
+        Returns:
+            Dictionary containing playbook title, description, and suggested scenarios
+            
+        Raises:
+            Exception: If OpenAI API call fails
+        """
+        logger.info(f"Generating playbook structure for {target_persona} in {industry}")
+        
+        try:
+            # Construct prompt for playbook structure generation
+            system_prompt = """You are an expert Sales Enablement Strategist specializing in creating comprehensive sales playbooks. Your task is to generate a structured playbook outline with relevant scenarios based on the provided context.
+
+When generating a playbook structure, you should:
+1. Create a clear, compelling title that reflects the target audience and purpose
+2. Write a concise description explaining the playbook's value and use cases
+3. Suggest 3-5 relevant scenarios based on the persona, industry, and goals
+4. For each scenario, provide a title, appropriate deal stage, and brief meeting context
+5. Identify potential customer pain points and competitors to address
+
+Your scenarios should cover the full sales lifecycle where appropriate, from discovery to closing.
+
+Output your response as a JSON object with these exact fields:
+{
+  "title": "string (compelling playbook title)",
+  "description": "string (2-3 sentences describing the playbook)",
+  "scenarios": [
+    {
+      "title": "string (scenario name, e.g., 'Discovery Call')",
+      "deal_stage": "Prospecting|Discovery|Qualification|Proposal|Negotiation|Closing|Follow-up",
+      "meeting_context": "string (brief context for this scenario)",
+      "customer_pain_points": ["string", "string"] (2-3 common pain points),
+      "competitors": ["string", "string"] (1-2 common competitors if applicable)
+    }
+  ]
+}"""
+
+            # Build user prompt
+            user_prompt = f"""Generate a comprehensive sales playbook structure for the following context:
+
+**Target Persona**: {target_persona or 'Not specified'}
+**Industry**: {industry or 'Not specified'}
+**Product Line**: {product_line or 'Not specified'}
+**Business Goals**: {', '.join(goals) if goals else 'Not specified'}
+
+Please create a playbook with:
+1. A compelling title that speaks to the target persona
+2. A clear description of the playbook's purpose and value
+3. 3-5 relevant scenarios covering key stages of the sales process
+4. For each scenario, include appropriate deal stage, context, pain points, and competitors
+
+Make the scenarios specific to the persona and industry provided.
+
+Return your response as a valid JSON object with the specified fields."""
+
+            # Call OpenAI API
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000,
+                response_format={"type": "json_object"}
+            )
+            
+            # Extract and parse response
+            content = response.choices[0].message.content
+            playbook_data = json.loads(content)
+            
+            # Log token usage
+            usage = response.usage
+            logger.info(
+                f"Playbook structure generated. Tokens used: "
+                f"{usage.total_tokens} (prompt: {usage.prompt_tokens}, "
+                f"completion: {usage.completion_tokens})"
+            )
+            
+            # Validate required fields
+            if "title" not in playbook_data or "scenarios" not in playbook_data:
+                raise ValueError("Generated playbook missing required fields")
+            
+            # Convert scenarios to proper format with IDs
+            from uuid import uuid4
+            formatted_scenarios = []
+            for scenario in playbook_data.get("scenarios", []):
+                formatted_scenarios.append({
+                    "id": str(uuid4()),
+                    "title": scenario.get("title", "Untitled Scenario"),
+                    "deal_stage": scenario.get("deal_stage", "Discovery"),
+                    "meeting_context": scenario.get("meeting_context"),
+                    "customer_pain_points": scenario.get("customer_pain_points", []),
+                    "competitors": scenario.get("competitors", []),
+                    "content": {
+                        "opening_strategy": None,
+                        "key_messages": [],
+                        "value_propositions": [],
+                        "proof_points": [],
+                        "discovery_questions": [],
+                        "objection_handling": [],
+                        "competitive_battle_cards": [],
+                        "next_steps": []
+                    }
+                })
+            
+            playbook_data["scenarios"] = formatted_scenarios
+            
+            return playbook_data
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse OpenAI response as JSON: {e}")
+            raise Exception("Failed to parse AI response. Please try again.")
+        except Exception as e:
+            logger.error(f"Error generating playbook structure: {str(e)}")
+            raise Exception(f"Failed to generate playbook structure: {str(e)}")
+    
+    async def generate_scenario_content(
+        self,
+        user_id: str,
+        playbook: Dict,
+        scenario: Dict,
+        focus_areas: List[str],
+        additional_context: Optional[str],
+        db: Any
+    ) -> BaseModel:
+        """
+        Generate detailed content for a specific scenario using RAG.
+        
+        Args:
+            user_id: User ID for RAG query
+            playbook: Playbook data dictionary
+            scenario: Scenario data dictionary
+            focus_areas: Areas to focus on (e.g., ["Pricing objections", "Technical integration"])
+            additional_context: Additional context for generation
+            db: Database connection for user profile lookup
+            
+        Returns:
+            ContentSection model with generated content
+            
+        Raises:
+            Exception: If OpenAI API call fails
+        """
+        logger.info(f"Generating content for scenario '{scenario.get('title')}' in playbook '{playbook.get('title')}'")
+        
+        try:
+            # Get user's company profile for context
+            user = await db.users.find_one({"user_id": user_id})
+            company_profile = user.get("company_profile", {}) if user else {}
+            
+            # Build query for RAG
+            query_parts = []
+            if playbook.get("target_persona"):
+                query_parts.append(f"information relevant for {playbook['target_persona']}")
+            if playbook.get("industry"):
+                query_parts.append(f"in {playbook['industry']} industry")
+            if scenario.get("deal_stage"):
+                query_parts.append(f"at {scenario['deal_stage']} stage")
+            if scenario.get("meeting_context"):
+                query_parts.append(scenario["meeting_context"])
+            if focus_areas:
+                query_parts.append(" ".join(focus_areas))
+            
+            query_text = " ".join(query_parts) if query_parts else "product information and sales strategies"
+            
+            # Query RAG for relevant context
+            from app.services.rag_service import get_rag_service
+            rag_service = get_rag_service(settings.OPENAI_API_KEY)
+            rag_results = await rag_service.query(
+                user_id=user_id,
+                query_text=query_text,
+                top_k=10
+            )
+            
+            # Build context from RAG results
+            retrieved_context = ""
+            if rag_results:
+                retrieved_context = "\n\n=== KNOWLEDGE BASE (Reference Material) ===\n"
+                for i, chunk in enumerate(rag_results, 1):
+                    retrieved_context += f"\n[Source {i}]\n{chunk['text']}\n"
+                retrieved_context += "\n=== END KNOWLEDGE BASE ===\n"
+                logger.info(f"Retrieved {len(rag_results)} chunks for scenario content generation")
+            
+            # Construct prompt for scenario content generation
+            system_prompt = """You are an expert Sales Enablement Strategist. Your goal is to create a high-converting sales playbook scenario with structured, actionable content.
+
+You must analyze the provided background information and generate comprehensive content for this specific sales scenario.
+
+Output Format: JSON
+Your response must strictly follow this JSON schema:
+{
+  "opening_strategy": "string (how to start the conversation)",
+  "key_messages": ["string", "string", ...] (3-5 main points to communicate),
+  "value_propositions": ["string", "string", ...] (3-5 reasons why they should choose your solution),
+  "proof_points": ["string", "string", ...] (3-5 specific features, capabilities, or benefits),
+  "discovery_questions": ["string", "string", ...] (5-7 questions to ask),
+  "objection_handling": [
+    {
+      "objection": "string (common objection)",
+      "response": "string (how to address it)"
+    }
+  ] (3-5 common objections),
+  "competitive_battle_cards": [
+    {
+      "competitor_name": "string",
+      "our_advantage": "string",
+      "their_weakness": "string",
+      "key_differentiator": "string"
+    }
+  ] (1-3 battle cards if competitors are specified),
+  "next_steps": ["string", "string", ...] (2-4 actions to advance the deal)
+}
+
+Make all content specific, actionable, and tailored to the scenario context."""
+
+            # Build user prompt
+            user_prompt = f"""**TASK**: Generate content for the "{scenario.get('title')}" scenario.
+
+**PLAYBOOK CONTEXT**:
+- Persona: {playbook.get('target_persona', 'Not specified')}
+- Industry: {playbook.get('industry', 'Not specified')}
+- Product: {playbook.get('product_line', 'Not specified')}
+
+**SCENARIO CONTEXT**:
+- Stage: {scenario.get('deal_stage', 'Not specified')}
+- Meeting Context: {scenario.get('meeting_context', 'Not specified')}
+- Pain Points: {', '.join(scenario.get('customer_pain_points', [])) if scenario.get('customer_pain_points') else 'Not specified'}
+- Competitors: {', '.join(scenario.get('competitors', [])) if scenario.get('competitors') else 'Not specified'}
+"""
+
+            if company_profile:
+                user_prompt += "\n**YOUR COMPANY/PRODUCT**:\n"
+                if company_profile.get('name'):
+                    user_prompt += f"- Name: {company_profile['name']}\n"
+                if company_profile.get('description'):
+                    user_prompt += f"- Description: {company_profile['description']}\n"
+                if company_profile.get('value_proposition'):
+                    user_prompt += f"- Value Proposition: {company_profile['value_proposition']}\n"
+            
+            if retrieved_context:
+                user_prompt += f"\n{retrieved_context}\n"
+            
+            if focus_areas:
+                user_prompt += f"\n**FOCUS AREAS**: {', '.join(focus_areas)}\n"
+            
+            if additional_context:
+                user_prompt += f"\n**ADDITIONAL CONTEXT**: {additional_context}\n"
+            
+            user_prompt += """
+**INSTRUCTIONS**:
+1. Tailor all content to the {deal_stage} stage
+2. Address the specific pain points mentioned
+3. Use the Knowledge Base to provide accurate product details and proof points
+4. If competitors are listed, create specific battle cards for them
+5. Make discovery questions appropriate for this stage
+6. Provide realistic objection handling strategies
+7. Suggest concrete next steps to advance the deal
+
+Return your response as a valid JSON object with the specified fields."""
+
+            # Call OpenAI API
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2500,
+                response_format={"type": "json_object"}
+            )
+            
+            # Extract and parse response
+            content = response.choices[0].message.content
+            content_data = json.loads(content)
+            
+            # Log token usage
+            usage = response.usage
+            logger.info(
+                f"Scenario content generated. Tokens used: "
+                f"{usage.total_tokens} (prompt: {usage.prompt_tokens}, "
+                f"completion: {usage.completion_tokens})"
+            )
+            
+            # Import ContentSection model
+            from app.models.playbook import ContentSection
+            
+            # Validate and create ContentSection
+            content_section = ContentSection(**content_data)
+            
+            return content_section
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse OpenAI response as JSON: {e}")
+            raise Exception("Failed to parse AI response. Please try again.")
+        except Exception as e:
+            logger.error(f"Error generating scenario content: {str(e)}")
+            raise Exception(f"Failed to generate scenario content: {str(e)}")
 
 
 # Create a singleton instance

@@ -76,6 +76,10 @@ api_v1_router.include_router(documents_router)
 from app.api.talk_points import router as talk_points_router
 api_v1_router.include_router(talk_points_router)
 
+# Include playbooks router (Playbook Builder)
+from app.api.playbooks import router as playbooks_router
+api_v1_router.include_router(playbooks_router)
+
 # Include analytics router
 from app.api.analytics import router as analytics_router
 api_v1_router.include_router(analytics_router)
