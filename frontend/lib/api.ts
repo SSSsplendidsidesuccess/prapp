@@ -19,6 +19,18 @@ import type {
   CompanyProfile,
   DealStage
 } from '@/types/sales';
+import type {
+  Playbook,
+  PlaybookCreate,
+  PlaybookUpdate,
+  PlaybookListResponse,
+  Scenario,
+  ScenarioCreate,
+  ScenarioUpdate,
+  GeneratePlaybookRequest,
+  GenerateScenarioContentRequest,
+  GenerateScenarioContentResponse
+} from '@/types/playbooks';
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -579,4 +591,154 @@ export const talkPointsApi = {
       method: 'DELETE',
       requiresAuth: true,
     }),
+};
+
+// ============================================================================
+// PLAYBOOKS API
+// ============================================================================
+
+/**
+ * Playbooks API calls for sales playbook management
+ */
+export const playbooksApi = {
+  /**
+   * Create a new playbook
+   */
+  create: (data: PlaybookCreate): Promise<Playbook> =>
+    apiRequest('/playbooks', {
+      method: 'POST',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * List all playbooks for the current user
+   */
+  list: (params?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    is_template?: boolean;
+  }): Promise<PlaybookListResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.is_template !== undefined) queryParams.append('is_template', params.is_template.toString());
+    
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/playbooks?${queryString}` : '/playbooks';
+    
+    return apiRequest(endpoint, {
+      requiresAuth: true,
+    });
+  },
+
+  /**
+   * Get a specific playbook by ID
+   */
+  get: (playbookId: string): Promise<Playbook> =>
+    apiRequest(`/playbooks/${playbookId}`, {
+      requiresAuth: true,
+    }),
+
+  /**
+   * Update a playbook
+   */
+  update: (playbookId: string, data: PlaybookUpdate): Promise<Playbook> =>
+    apiRequest(`/playbooks/${playbookId}`, {
+      method: 'PUT',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Delete a playbook
+   */
+  delete: (playbookId: string): Promise<{ message: string }> =>
+    apiRequest(`/playbooks/${playbookId}`, {
+      method: 'DELETE',
+      requiresAuth: true,
+    }),
+
+  /**
+   * Add a scenario to a playbook
+   */
+  addScenario: (playbookId: string, data: ScenarioCreate): Promise<Scenario> =>
+    apiRequest(`/playbooks/${playbookId}/scenarios`, {
+      method: 'POST',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Update a scenario in a playbook
+   */
+  updateScenario: (playbookId: string, scenarioId: string, data: ScenarioUpdate): Promise<Scenario> =>
+    apiRequest(`/playbooks/${playbookId}/scenarios/${scenarioId}`, {
+      method: 'PUT',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Delete a scenario from a playbook
+   */
+  deleteScenario: (playbookId: string, scenarioId: string): Promise<{ message: string }> =>
+    apiRequest(`/playbooks/${playbookId}/scenarios/${scenarioId}`, {
+      method: 'DELETE',
+      requiresAuth: true,
+    }),
+
+  /**
+   * Generate playbook structure using AI
+   */
+  generate: (data: GeneratePlaybookRequest): Promise<Playbook> =>
+    apiRequest('/playbooks/generate-structure', {
+      method: 'POST',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Generate scenario content using AI and RAG
+   */
+  generateScenarioContent: (
+    playbookId: string,
+    scenarioId: string,
+    data: GenerateScenarioContentRequest
+  ): Promise<GenerateScenarioContentResponse> =>
+    apiRequest(`/playbooks/${playbookId}/scenarios/${scenarioId}/generate`, {
+      method: 'POST',
+      requiresAuth: true,
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Save playbook as template
+   */
+  saveAsTemplate: (playbookId: string): Promise<Playbook> =>
+    apiRequest(`/playbooks/${playbookId}/template`, {
+      method: 'POST',
+      requiresAuth: true,
+    }),
+
+  /**
+   * List templates
+   */
+  listTemplates: (params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<PlaybookListResponse> => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('is_template', 'true');
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    
+    const endpoint = `/playbooks?${queryParams.toString()}`;
+    
+    return apiRequest(endpoint, {
+      requiresAuth: true,
+    });
+  },
 };

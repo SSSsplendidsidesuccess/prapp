@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, User, Home, Settings } from "lucide-react";
+import { LogOut, User, Home, Settings, BookOpen } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +36,18 @@ export default function TopBar({ userName, userEmail }: TopBarProps) {
             >
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline text-sm">Dashboard</span>
+            </Link>
+            <Link
+              href="/playbooks"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname?.startsWith('/playbooks')
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+              aria-label="Go to playbooks"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm">Playbooks</span>
             </Link>
             <Link
               href="/profile"
